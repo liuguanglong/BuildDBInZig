@@ -19,13 +19,13 @@ pub const WindowsFreeListContext = struct {
     nappend: u16, //number of pages to be appended
     // newly allocated or deallocated pages keyed by the pointer.
     // nil value denotes a deallocated page.
-    updates: std.AutoHashMap(u64, ?node.BNode),
+    updates: std.AutoHashMap(u64, ?*node.BNode),
 
     pub fn init(self: *WindowsFreeListContext, allocator: std.mem.Allocator, fileName: [*:0]const u8, maxPageCount: u64) !void {
         const nodelmax = node.HEADER + 8 + 2 + 4 + node.BTREE_MAX_KEY_SIZE + node.BTREE_MAX_VALUE_SIZE;
 
         std.debug.assert(nodelmax <= node.BTREE_PAGE_SIZE);
-        self.updates = std.AutoHashMap(u64, ?node.BNode).init(allocator);
+        self.updates = std.AutoHashMap(u64, ?*node.BNode).init(allocator);
         self.file = mapping.MappingFile.init(fileName, node.BTREE_PAGE_SIZE, maxPageCount) catch {
             return context.ContextError.PersistSeviceInitException;
         };
@@ -35,9 +35,9 @@ pub const WindowsFreeListContext = struct {
 
     pub fn deinit(self: *WindowsFreeListContext) void {
         self.file.syncFile() catch unreachable;
-        self.updates.clearRetainingCapacity();
 
         _ = self.file.deinit();
+        self.clearUpdatePages();
         _ = self.updates.deinit();
 
         self.allocator.destroy(self);
@@ -70,7 +70,8 @@ pub const WindowsFreeListContext = struct {
             self.nappend = 0;
             self.root = 0;
 
-            var newNode = node.BNode.init(node.Type.Single);
+            var data1 = [_]u8{0} ** node.BTREE_PAGE_SIZE;
+            var newNode = node.BNode.initSigleCapacity(&data1);
             freelist.flnSetHeader(&newNode, 0, 0);
             freelist.flnSetTotal(&newNode, 0);
 
@@ -238,6 +239,8 @@ pub const WindowsFreeListContext = struct {
         while (it.next()) |entry| {
             if (entry.value_ptr.* != null) {
                 const ptrMapped = self.getMappedPtr(entry.key_ptr.*) catch unreachable;
+                std.debug.print("Before copy key {d}\n", .{entry.key_ptr.*});
+                std.debug.print("Before copy org keys{d}\n", .{entry.value_ptr.*.?.nkeys()});
                 const ptrUpdateNode = entry.value_ptr.*.?.getdata();
                 std.mem.copyForwards(u8, ptrMapped, ptrUpdateNode[0..node.BTREE_PAGE_SIZE]);
             }
@@ -249,6 +252,7 @@ pub const WindowsFreeListContext = struct {
             return context.ContextError.DataSaveException;
         };
 
+        self.clearUpdatePages();
         self.updates.clearRetainingCapacity();
         self.pageflushed += self.nappend;
         self.nfreelist = 0;
@@ -260,10 +264,22 @@ pub const WindowsFreeListContext = struct {
         };
     }
 
+    fn clearUpdatePages(self: *WindowsFreeListContext) void {
+        var iterator = self.updates.iterator();
+        while (iterator.next()) |entry| {
+            if (entry.value_ptr.* != null) {
+                const n = entry.value_ptr.*.?;
+                const ptr = n.data.Single;
+                self.allocator.destroy(n);
+                self.allocator.free(ptr);
+            }
+        }
+    }
+
     pub fn get(self: *WindowsFreeListContext, ptr: u64) context.ContextError!node.BNode {
         const value = self.updates.get(ptr);
         if (value) |v| {
-            return v.?;
+            return v.?.*;
         } else {
             return self.getMapped(ptr);
         }
@@ -275,7 +291,8 @@ pub const WindowsFreeListContext = struct {
         }
         const offset = ptr * node.BTREE_PAGE_SIZE;
         const content = self.file.getContent();
-        return node.BNode.initWithData(content[offset .. offset + node.BTREE_PAGE_SIZE]);
+
+        return node.BNode.initSigleCapacity(content[offset .. offset + node.BTREE_PAGE_SIZE][0..node.BTREE_PAGE_SIZE]);
     }
 
     pub fn getMappedPtr(self: *WindowsFreeListContext, ptr: u64) context.ContextError![]u8 {
@@ -288,6 +305,7 @@ pub const WindowsFreeListContext = struct {
     }
 
     pub fn del(self: *WindowsFreeListContext, ptr: u64) bool {
+        std.debug.print("Del Node: key {d} \n", .{ptr});
         self.updates.put(ptr, null) catch {
             return false;
         };
@@ -304,26 +322,47 @@ pub const WindowsFreeListContext = struct {
             ptr = self.pageflushed + self.nappend;
             self.nappend += 1;
         }
-        self.updates.put(ptr, bnode.*) catch {
+
+        const newNode = self.copyBNode(bnode);
+        self.updates.put(ptr, newNode) catch {
             return context.ContextError.DuplicateKey;
         };
         return ptr;
     }
 
-    pub fn use(self: *WindowsFreeListContext, ptr: u64, bnode: node.BNode) void {
-        self.updates.put(ptr, bnode) catch {
+    pub fn use(self: *WindowsFreeListContext, ptr: u64, bnode: *node.BNode) void {
+        std.debug.print("Use Node: key {d} \n", .{ptr});
+
+        const newNode = self.copyBNode(bnode);
+        self.updates.put(ptr, newNode) catch {
             unreachable;
         };
     }
 
-    pub fn append(self: *WindowsFreeListContext, bnode: node.BNode) u64 {
+    pub fn append(self: *WindowsFreeListContext, bnode: *node.BNode) u64 {
+        const newNode = self.copyBNode(bnode);
+
         const ptr = self.pageflushed + self.nappend;
         self.nappend += 1;
 
-        self.updates.put(ptr, bnode) catch {
+        self.updates.put(ptr, newNode) catch {
             unreachable;
         };
 
         return ptr;
+    }
+
+    fn copyBNode(self: *WindowsFreeListContext, bnode: *node.BNode) *node.BNode {
+        const ptrNodeData = bnode.getdata();
+        var ptrData = self.allocator.alloc(u8, node.BTREE_PAGE_SIZE) catch {
+            unreachable;
+        };
+        const newnode = self.allocator.create(node.BNode) catch {
+            unreachable;
+        };
+        newnode.* = node.BNode{ .data = @unionInit(node.BNodeData, "Single", ptrData[0..node.BTREE_PAGE_SIZE]) };
+        @memcpy(ptrData[0..node.BTREE_PAGE_SIZE], ptrNodeData[0..node.BTREE_PAGE_SIZE]);
+
+        return newnode;
     }
 };

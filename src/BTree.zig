@@ -28,7 +28,11 @@ pub const BTree = struct {
     }
 
     pub fn print(self: *BTree) void {
-        std.debug.print("BTree content:", .{});
+        std.debug.print("BTree content: Root:{d} \n", .{self.kv.getRoot()});
+
+        if (self.kv.getRoot() == 0)
+            return;
+
         var nodeRoot = self.kv.get(self.kv.getRoot()) catch {
             std.debug.panic("Get Node Exception!", .{});
         };
@@ -44,6 +48,7 @@ pub const BTree = struct {
         } else {
             treenode.print();
             const nkeys = treenode.nkeys();
+            std.debug.print("NKeys {d}", .{nkeys});
             var idx: u16 = 0;
             while (idx < nkeys) {
                 const prtNode = treenode.getPtr(idx);

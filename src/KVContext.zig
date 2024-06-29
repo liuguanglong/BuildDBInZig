@@ -18,7 +18,7 @@ pub const ContextError = error{
 pub const KVContext = union(enum) {
     winContext: *wincontext.WindowsContext,
     memContext: *memcontext.MemoryContext,
-    //winFreeListContext: *winfreelistcontext.WindowsFreeListContext,
+    winFreeListContext: *winfreelistcontext.WindowsFreeListContext,
 
     pub fn deinit(self: KVContext) void {
         switch (self) {
@@ -98,11 +98,11 @@ pub fn createMemoryContext(allocator: std.mem.Allocator) !*KVContext {
     return service;
 }
 
-// pub fn createWindowsFreeListContext(allocator: std.mem.Allocator, fileName: [*:0]const u8, maxPageCount: u64) !*KVContext {
-//     var t = try allocator.create(winfreelistcontext.WindowsFreeListContext);
-//     try t.init(allocator, fileName, maxPageCount);
+pub fn createWindowsFreeListContext(allocator: std.mem.Allocator, fileName: [*:0]const u8, maxPageCount: u64) !*KVContext {
+    var t = try allocator.create(winfreelistcontext.WindowsFreeListContext);
+    try t.init(allocator, fileName, maxPageCount);
 
-//     const service = try allocator.create(KVContext);
-//     service.* = @unionInit(KVContext, "winFreeListContext", t);
-//     return service;
-// }
+    const service = try allocator.create(KVContext);
+    service.* = @unionInit(KVContext, "winFreeListContext", t);
+    return service;
+}

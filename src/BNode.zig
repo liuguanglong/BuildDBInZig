@@ -325,7 +325,7 @@ pub const BNode = struct {
     // the second node always fits on a page.
     pub fn nodeSplit2(self: *BNode, right: *BNode, old: *BNode) void {
         const idx = old.findSplitIdx();
-        std.debug.print("Split Index:{d} Old Node Type {d}", .{ idx, old.btype() });
+        //std.debug.print("Split Index:{d} Old Node Type {d}", .{ idx, old.btype() });
         self.setHeader(old.btype(), idx);
         right.setHeader(old.btype(), old.nkeys() - idx);
 

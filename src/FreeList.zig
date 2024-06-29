@@ -115,7 +115,8 @@ pub const FreeList = struct {
 
     pub fn flPush(self: *FreeList, listFreeNode: *std.ArrayList(u64), listReuse: *std.ArrayList(u64)) void {
         while (listFreeNode.items.len > 0) {
-            var newNode = node.BNode.init(node.Type.Single);
+            var data1 = [_]u8{0} ** node.BTREE_PAGE_SIZE;
+            var newNode = node.BNode.initSigleCapacity(&data1);
 
             //construc new node
             var size: u16 = @intCast(listFreeNode.items.len);
@@ -136,9 +137,9 @@ pub const FreeList = struct {
                 const ptrHead = listReuse.pop();
                 self.head = ptrHead;
                 //std.debug.print("Reuse Ptr {d} \n", .{self.head});
-                self.dbContext.use(self.head, newNode);
+                self.dbContext.use(self.head, &newNode);
             } else {
-                self.head = self.dbContext.append(newNode);
+                self.head = self.dbContext.append(&newNode);
                 //std.debug.print("New Head Ptr {d} \n", .{self.head});
             }
         }
