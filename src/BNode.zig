@@ -295,10 +295,7 @@ pub const BNode = struct {
     //the second node always fits on a page.
     pub fn findSplitIdx(self: *BNode) u16 {
         const number = self.nkeys();
-
         const lastPos = self.kvPos(number);
-        std.debug.print("Key Number:{d} Last Pos:{d}\n", .{ number, lastPos });
-
         var find: u16 = number - 1;
         var pos: u16 = lastPos;
 

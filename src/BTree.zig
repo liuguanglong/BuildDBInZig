@@ -315,7 +315,7 @@ pub const BTree = struct {
                 nodeReplaceKidN(self, updatedNode, treenode, idx, &node.SplitNodes{ .Count = 1, .Nodes = [3]*node.BNode{ &nodeTmp, undefined, undefined } });
             },
             -1 => { //left
-                std.debug.print("Merge Left.\n", .{});
+                //std.debug.print("Merge Left.\n", .{});
 
                 var dataMergedLeft = [_]u8{0} ** node.BTREE_PAGE_SIZE;
                 var mergedleft = node.BNode.initSigleCapacity(&dataMergedLeft);
@@ -332,7 +332,7 @@ pub const BTree = struct {
                 updatedNode.nodeReplace2Kid(treenode, idx - 1, prtMergedNodeleft, mergedleft.getKey(0));
             },
             1 => { //right
-                std.debug.print("Merge Right.\n", .{});
+                //std.debug.print("Merge Right.\n", .{});
 
                 var nodeMerged = self.kv.get(ret.ptrNode) catch {
                     std.debug.panic("Get Node Exception idx: {d}", .{ret.ptrNode});

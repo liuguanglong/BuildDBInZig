@@ -239,8 +239,6 @@ pub const WindowsFreeListContext = struct {
         while (it.next()) |entry| {
             if (entry.value_ptr.* != null) {
                 const ptrMapped = self.getMappedPtr(entry.key_ptr.*) catch unreachable;
-                std.debug.print("Before copy key {d}\n", .{entry.key_ptr.*});
-                std.debug.print("Before copy org keys{d}\n", .{entry.value_ptr.*.?.nkeys()});
                 const ptrUpdateNode = entry.value_ptr.*.?.getdata();
                 std.mem.copyForwards(u8, ptrMapped, ptrUpdateNode[0..node.BTREE_PAGE_SIZE]);
             }
@@ -305,7 +303,6 @@ pub const WindowsFreeListContext = struct {
     }
 
     pub fn del(self: *WindowsFreeListContext, ptr: u64) bool {
-        std.debug.print("Del Node: key {d} \n", .{ptr});
         self.updates.put(ptr, null) catch {
             return false;
         };
@@ -331,8 +328,6 @@ pub const WindowsFreeListContext = struct {
     }
 
     pub fn use(self: *WindowsFreeListContext, ptr: u64, bnode: *node.BNode) void {
-        std.debug.print("Use Node: key {d} \n", .{ptr});
-
         const newNode = self.copyBNode(bnode);
         self.updates.put(ptr, newNode) catch {
             unreachable;
