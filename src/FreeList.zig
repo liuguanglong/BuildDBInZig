@@ -113,6 +113,7 @@ pub const FreeList = struct {
         flnSetTotal(&headnode, newTotal);
     }
 
+    //todo
     pub fn flPush(self: *FreeList, listFreeNode: *std.ArrayList(u64), listReuse: *std.ArrayList(u64)) void {
         while (listFreeNode.items.len > 0) {
             var data1 = [_]u8{0} ** node.BTREE_PAGE_SIZE;

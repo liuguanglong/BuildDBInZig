@@ -44,7 +44,7 @@ pub const BTree = struct {
         if (treenode.btype() == node.BNODE_LEAF) {
             treenode.print();
         } else if (treenode.btype() == node.BNODE_FREE_LIST) {
-            treenode.print();
+            //treenode.print();
         } else {
             treenode.print();
             const nkeys = treenode.nkeys();
@@ -68,8 +68,8 @@ pub const BTree = struct {
     }
 
     pub fn Get(self: *BTree, key: []const u8) ?[]u8 {
-        const rootNode = self.kv.get(self.kv.getRoot()) catch unreachable;
-        return self.treeSearch(rootNode, key);
+        var rootNode = self.kv.get(self.kv.getRoot()) catch unreachable;
+        return self.treeSearch(&rootNode, key);
     }
 
     pub fn Set(self: *BTree, key: []const u8, val: []const u8, mode: u16) !void {
@@ -249,10 +249,10 @@ pub const BTree = struct {
             },
             node.BNODE_NODE => {
                 const ptr = treenode.getPtr(idx);
-                const subNode = self.kv.get(ptr) catch unreachable;
+                var subNode = self.kv.get(ptr) catch unreachable;
 
                 // internal node, insert it to a kid node.
-                return self.treeSearch(subNode, key);
+                return self.treeSearch(&subNode, key);
             },
             else => {
                 std.debug.panic("Exception Insert Node!\n", .{});
