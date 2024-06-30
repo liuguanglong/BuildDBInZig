@@ -224,7 +224,7 @@ pub const BTree = struct {
         } else return false;
     }
 
-    pub fn getNode(self: *BTree, ptr: u64) !*node.BNode {
+    pub fn getNode(self: *BTree, ptr: u64) !node.BNode {
         return self.kv.get(ptr);
     }
 

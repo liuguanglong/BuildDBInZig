@@ -122,6 +122,8 @@ pub const Record = struct {
                         // const array = try self.allocator.alloc(u8, end - pos);
                         // @memcpy(array, in[pos..end]);
                         // self.Vals.items[idx] = @unionInit(value.Value, "BYTES", array);
+                        if (self.Vals.items[idx] != null)
+                            self.allocator.free(self.Vals.items[idx].?.BYTES);
                         const ret = try value.deescapeString(self.allocator, in[pos..end]);
                         self.Vals.items[idx] = @unionInit(value.Value, "BYTES", ret);
                         pos = end + 1;

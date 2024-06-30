@@ -137,7 +137,7 @@ pub const FreeList = struct {
                 //reuse a pointer from the list
                 const ptrHead = listReuse.pop();
                 self.head = ptrHead;
-                //std.debug.print("Reuse Ptr {d} \n", .{self.head});
+                //std.debug.print("Reuse Ptr {d} \n", .{self.head});['']
                 self.dbContext.use(self.head, &newNode);
             } else {
                 self.head = self.dbContext.append(&newNode);

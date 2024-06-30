@@ -11,19 +11,19 @@ pub const KVStruct = struct {
 pub const BIterError = error{ PrevNotFound, NextNotFound };
 pub const BIter = struct {
     kv: *kvcontext.KVContext,
-    path: std.ArrayList(*node.BNode), // from root to leaf
+    path: std.ArrayList(node.BNode), // from root to leaf
     pos: std.ArrayList(u16), //indexes into nodes
     allocator: std.mem.Allocator,
     valid: bool,
 
     pub fn init(allocator: std.mem.Allocator, kv: *kvcontext.KVContext) BIter {
-        return BIter{ .allocator = allocator, .path = std.ArrayList(*node.BNode).init(allocator), .pos = std.ArrayList(u16).init(allocator), .kv = kv, .valid = true };
+        return BIter{ .allocator = allocator, .path = std.ArrayList(node.BNode).init(allocator), .pos = std.ArrayList(u16).init(allocator), .kv = kv, .valid = true };
     }
 
     pub fn init1(self: *BIter, allocator: std.mem.Allocator, kv: *kvcontext.KVContext) void {
         self.kv = kv;
         self.pos = std.ArrayList(u16).init(allocator);
-        self.path = std.ArrayList(*node.BNode).init(allocator);
+        self.path = std.ArrayList(node.BNode).init(allocator);
         self.allocator = allocator;
     }
 

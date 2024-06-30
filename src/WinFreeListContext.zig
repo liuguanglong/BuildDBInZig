@@ -140,7 +140,7 @@ pub const WindowsFreeListContext = struct {
         self.nfreelist = 0;
         self.nappend = 0;
 
-        std.debug.print("Free Pages Total:{d}", .{self.freepages.Total()});
+        //std.debug.print("Free Pages Total:{d}\n", .{self.freepages.Total()});
     }
 
     // extend the file to at least `npages`.
@@ -265,7 +265,7 @@ pub const WindowsFreeListContext = struct {
     }
 
     fn clearUpdatePages(self: *WindowsFreeListContext) void {
-        std.debug.print("Clear Pages: Count{d}\n", .{self.updates.count()});
+        //std.debug.print("Clear Pages: Count{d}\n", .{self.updates.count()});
         var iterator = self.updates.iterator();
         while (iterator.next()) |entry| {
             if (entry.value_ptr.* != null) {

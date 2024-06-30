@@ -300,10 +300,10 @@ pub const BNode = struct {
         var pos: u16 = lastPos;
 
         var keyCount: u16 = 1;
-        var kvSize = BTREE_PAGE_SIZE - HEADER - 10 * keyCount;
+        var kvSize: u16 = ((BTREE_PAGE_SIZE - HEADER - 10 * keyCount) * 2) / 3; //Todo,just page plit
 
         while (find > 0) {
-            kvSize = BTREE_PAGE_SIZE - HEADER - 10 * keyCount;
+            kvSize = ((BTREE_PAGE_SIZE - HEADER - 10 * keyCount) * 2) / 3;
             pos = self.kvPos(find);
 
             //std.debug.print("KVSize{d} pos:{d} lastpos:{d}\n", .{ kvSize, pos, lastPos });
