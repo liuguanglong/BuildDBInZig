@@ -95,23 +95,30 @@ pub const BIter = struct {
     }
 
     pub fn interNext(self: *BIter, level: u16) !void {
+        const poslen = self.pos.items.len;
         if (self.pos.items[level] < self.path.items[level].nkeys() - 1) { // move within this node
             self.pos.items[level] += 1;
         } else if (level > 0) { // move to a slibing node
-            _ = self.path.pop();
-            _ = self.pos.pop();
             try self.interNext(level - 1);
+            //_ = self.path.pop();
+            //_ = self.pos.pop();
         } else {
             self.valid = false;
             return BIterError.NextNotFound;
         }
 
-        if (level + 1 < self.pos.items.len) {
+        //std.debug.print("Level:{d} Path.len:{d} Pos.len:{d} Old.Pos.Len{d}\n", .{ level, self.path.items.len, self.pos.items.len, poslen });
+        if (level + 1 < poslen) {
             // update the kid node
             var n = self.path.items[level];
             const idx = n.getPtr(self.pos.items[level]);
             const kid = try self.kv.get(idx);
+            //kid.print();
 
+            //std.debug.print("First Node {s} {s}\n", .{ kid.getKey(0), kid.getValue(0) });
+
+            _ = self.path.pop();
+            _ = self.pos.pop();
             try self.path.append(kid);
             try self.pos.append(0);
         }

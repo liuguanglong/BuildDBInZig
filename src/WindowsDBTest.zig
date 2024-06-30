@@ -31,8 +31,8 @@ test "Test Seek" {
     var r2 = try table.Record.init(allocator, def);
     defer r2.deinit();
 
-    try r1.Set([]const u8, "id", "180");
-    try r2.Set([]const u8, "id", "200");
+    try r1.Set([]const u8, "id", "1");
+    try r2.Set([]const u8, "id", "5");
 
     var cursor = try scanner.Scanner.createScanner(allocator, biter.OP_CMP.CMP_GT, biter.OP_CMP.CMP_LT, &r1, &r2);
     defer allocator.destroy(cursor);
