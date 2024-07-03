@@ -137,6 +137,64 @@ pub const Record = struct {
         }
     }
 
+    // for primary keys
+    pub fn deencodeKey(self: *Record, in: []const u8) !void {
+        const pValue: i32 = @intCast(self.def.Prefix);
+        const prefix = util.i32ToU8Array(pValue);
+
+        std.debug.assert(std.mem.eql(u8, prefix[0..prefix.len], in[0..prefix.len]));
+
+        var pos: u16 = prefix.len;
+        var idx: u16 = 0;
+        while (idx < self.def.Cols.len) {
+            if (idx == self.def.PKeys) {
+                switch (self.def.Types[idx]) {
+                    value.ValueType.INT8 => {
+                        self.Vals.items[idx] = @unionInit(value.Value, "INT8", util.U8ArrayToi8(in[pos]));
+                        pos += 1;
+                    },
+                    value.ValueType.INT16 => {
+                        self.Vals.items[idx] = @unionInit(value.Value, "INT16", util.U8ArrayToi16(in[pos .. pos + 2]));
+                        pos += 2;
+                    },
+                    value.ValueType.INT32 => {
+                        self.Vals.items[idx] = @unionInit(value.Value, "INT32", util.U8ArrayToi32(in[pos .. pos + 4]));
+                        pos += 4;
+                    },
+                    value.ValueType.INT64 => {
+                        self.Vals.items[idx] = @unionInit(value.Value, "INT64", util.U8ArrayToi32(in[pos .. pos + 8]));
+                        pos += 8;
+                    },
+                    value.ValueType.BOOL => {
+                        const bVal = util.U8ArrayToi8(in[pos]);
+                        pos += 1;
+
+                        if (bVal == 1) {
+                            self.Vals.items[idx] = @unionInit(value.Value, "BOOL", true);
+                        } else {
+                            self.Vals.items[idx] = @unionInit(value.Value, "BOOL", false);
+                        }
+                    },
+                    value.ValueType.BYTES => {
+                        var end = pos;
+                        while (in[end] != 0)
+                            end += 1;
+
+                        if (self.Vals.items[idx] != null)
+                            self.allocator.free(self.Vals.items[idx].?.BYTES);
+                        const ret = try value.deescapeString(self.allocator, in[pos..end]);
+                        self.Vals.items[idx] = @unionInit(value.Value, "BYTES", ret);
+                        pos = end + 1;
+                    },
+                    value.ValueType.ERROR => {
+                        std.debug.panic("Column not defined!", .{});
+                    },
+                }
+            }
+            idx += 1;
+        }
+    }
+
     // order-preserving encoding
     pub fn encodeValues(self: *Record, list: *std.ArrayList(u8)) !void {
         //var list = std.ArrayList(u8).init(allocator);
@@ -201,6 +259,7 @@ pub const Record = struct {
             idx += 1;
         }
     }
+
     // for primary keys
     pub fn encodeKey(self: *Record, prefix: u32, list: *std.ArrayList(u8)) !void {
         const pValue: i32 = @intCast(prefix);

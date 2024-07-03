@@ -75,8 +75,10 @@ pub const Scanner = struct {
 
     pub fn Deref(self: *Scanner, rec: *table.Record) !void {
         const kv = self.iter.Deref();
-        if (kv.val.len > 0)
+        if (kv.val.len > 0) {
+            try rec.deencodeKey(kv.key);
             try rec.decodeValues(kv.val);
+        }
     }
 
     pub fn Next(self: *Scanner) void {
