@@ -9,7 +9,9 @@ const scanner = @import("Scanner.zig");
 const testing = std.testing;
 
 test "Test Seek" {
+    // return error.SkipZigTest;
     std.debug.print("\nTest Seek Record\n", .{});
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     defer {
@@ -22,7 +24,7 @@ test "Test Seek" {
     var instance = try windb.WindowsDB.init(allocator, filename, 20000);
     defer instance.deinit();
 
-    const def = try instance.getTableDef("person");
+    const def = try instance.getTableDef("person2key");
     std.debug.print("Table Define: {} \n", .{def.*});
 
     var r1 = try table.Record.init(allocator, def);
@@ -32,9 +34,11 @@ test "Test Seek" {
     defer r2.deinit();
 
     try r1.Set([]const u8, "id", "1");
-    try r2.Set([]const u8, "id", "5");
+    try r1.Set([]const u8, "name", "bob1");
+    try r2.Set([]const u8, "id", "8");
+    try r2.Set([]const u8, "name", "bob8");
 
-    var cursor = try scanner.Scanner.createScanner(allocator, biter.OP_CMP.CMP_GT, biter.OP_CMP.CMP_LT, &r1, &r2);
+    var cursor = try scanner.Scanner.createScanner(allocator, biter.OP_CMP.CMP_GE, biter.OP_CMP.CMP_LE, &r1, &r2);
     defer allocator.destroy(cursor);
     defer cursor.deinit();
 
@@ -49,149 +53,156 @@ test "Test Seek" {
     }
 }
 
-// test "Test Delete" {
-//     std.debug.print("\nTest Delete Record\n", .{});
-//     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-//     const allocator = gpa.allocator();
-//     defer {
-//         const deinit_status = gpa.deinit();
-//         if (deinit_status == .leak) @panic("TEST FAIL");
-//     }
+test "Test Delete" {
+    return error.SkipZigTest;
+    //std.debug.print("\nTest Delete Record\n", .{});
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allocator = gpa.allocator();
+    // defer {
+    //     const deinit_status = gpa.deinit();
+    //     if (deinit_status == .leak) @panic("TEST FAIL");
+    // }
 
-//     //const allocator = std.heap.page_allocator;
-//     const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
-//     var instance = try windb.WindowsDB.init(allocator, filename, 20000);
-//     defer instance.deinit();
+    // //const allocator = std.heap.page_allocator;
+    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // var instance = try windb.WindowsDB.init(allocator, filename, 20000);
+    // defer instance.deinit();
 
-//     const def = try instance.getTableDef("person");
-//     std.debug.print("Table Define: {} \n", .{def.*});
+    // const def = try instance.getTableDef("person2key");
+    // std.debug.print("Table Define: {} \n", .{def.*});
 
-//     var r1 = try table.Record.init(allocator, def);
-//     defer r1.deinit();
+    // var r1 = try table.Record.init(allocator, def);
+    // defer r1.deinit();
 
-//     try r1.Set([]const u8, "id", "1");
-//     const ret1 = try instance.Delete(&r1);
-//     std.debug.print("Delete Result:{}\n", .{ret1});
-// }
+    // try r1.Set([]const u8, "id", "6");
+    // try r1.Set([]const u8, "name", "bob6");
+    // const ret1 = try instance.Delete(&r1);
 
-// test "Test Insert Record" {
-//     std.debug.print("\nTest Insert Record\n", .{});
+    // std.debug.print("Delete Result:{}\n", .{ret1});
+}
 
-//     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-//     const allocator = gpa.allocator();
-//     defer {
-//         const deinit_status = gpa.deinit();
-//         if (deinit_status == .leak) @panic("TEST FAIL");
-//     }
+test "Test Insert Record" {
+    return error.SkipZigTest;
+    // std.debug.print("\nTest Insert Record\n", .{});
 
-//     const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
-//     var instance = try windb.WindowsDB.init(allocator, filename, 20000000);
-//     defer instance.deinit();
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allocator = gpa.allocator();
+    // defer {
+    //     const deinit_status = gpa.deinit();
+    //     if (deinit_status == .leak) @panic("TEST FAIL");
+    // }
 
-//     //instance.print();
+    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // var instance = try windb.WindowsDB.init(allocator, filename, 20000000);
+    // defer instance.deinit();
 
-//     const def = try instance.getTableDef("person");
-//     std.debug.print("Table Define: {} \n", .{def.*});
+    // //instance.print();
 
-//     // var r = try table.Record.init(allocator, def);
-//     // defer r.deinit();
+    // const def = try instance.getTableDef("person2key");
+    // std.debug.print("Table Define: {} \n", .{def.*});
 
-//     // for (500..1000) |idx| {
-//     //     const id = try std.fmt.allocPrint(
-//     //         allocator,
-//     //         "{d}",
-//     //         .{idx},
-//     //     );
-//     //     defer allocator.free(id);
+    // var r = try table.Record.init(allocator, def);
+    // defer r.deinit();
 
-//     //     const name = try std.fmt.allocPrint(
-//     //         allocator,
-//     //         "bob{d}",
-//     //         .{idx},
-//     //     );
-//     //     defer allocator.free(name);
-//     //     try r.Set([]const u8, "id", id);
-//     //     try r.Set([]const u8, "name", name);
-//     //     try r.Set([]const u8, "address", "Montrel Canada H9T 1R5");
-//     //     try r.Set(i16, "age", 20);
-//     //     try r.Set(bool, "married", false);
+    // for (0..10) |idx| {
+    //     const id = try std.fmt.allocPrint(
+    //         allocator,
+    //         "{d}",
+    //         .{idx},
+    //     );
+    //     defer allocator.free(id);
 
-//     //     try instance.Insert(&r);
-//     // }
+    //     const name = try std.fmt.allocPrint(
+    //         allocator,
+    //         "bob{d}",
+    //         .{idx},
+    //     );
+    //     defer allocator.free(name);
+    //     try r.Set([]const u8, "id", id);
+    //     try r.Set([]const u8, "name", name);
+    //     try r.Set([]const u8, "address", "Montrel Canada H9T 1R5");
+    //     try r.Set(i16, "age", 20);
+    //     try r.Set(bool, "married", false);
 
-//     var r1 = try table.Record.init(allocator, def);
-//     defer r1.deinit();
+    //     try instance.Insert(&r);
+    // }
 
-//     try r1.Set([]const u8, "id", "488");
-//     const ret1 = try instance.Get(&r1);
-//     if (ret1 == true) {
-//         std.debug.print("Row:{}\n", .{r1});
-//     }
-// }
+    // var r1 = try table.Record.init(allocator, def);
+    // defer r1.deinit();
 
-// test "Test Insert min_preifx to Meta" {
-//     std.debug.print("\nInsert min_preifx to Meta\n", .{});
+    // try r1.Set([]const u8, "id", "6");
+    // try r1.Set([]const u8, "name", "bob6");
+    // const ret1 = try instance.Get(&r1);
+    // if (ret1 == true) {
+    //     std.debug.print("Row:{}\n", .{r1});
+    // }
+}
 
-//     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-//     const allocator = gpa.allocator();
-//     defer {
-//         const deinit_status = gpa.deinit();
-//         if (deinit_status == .leak) @panic("TEST FAIL");
-//     }
+test "Test Insert min_preifx to Meta" {
+    return error.SkipZigTest;
+    // std.debug.print("\nInsert min_preifx to Meta\n", .{});
 
-//     const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
-//     var instance = try windb.WindowsDB.init(allocator, filename, 2000);
-//     defer instance.deinit();
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allocator = gpa.allocator();
+    // defer {
+    //     const deinit_status = gpa.deinit();
+    //     if (deinit_status == .leak) @panic("TEST FAIL");
+    // }
 
-//     var r = try table.Record.init(allocator, table.TDEF_META);
-//     defer r.deinit();
+    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // var instance = try windb.WindowsDB.init(allocator, filename, 2000);
+    // defer instance.deinit();
 
-//     const minPreix: u32 = 3;
-//     const valContent = util.i32ToU8Array(minPreix);
-//     std.debug.print("Val Content:{s}\n", .{valContent});
+    // var r = try table.Record.init(allocator, table.TDEF_META);
+    // defer r.deinit();
 
-//     try r.Set([]const u8, "key", "next_prefix");
-//     try r.Set([]const u8, "val", &valContent);
-//     std.debug.print("Record Conent: {} \n", .{r});
+    // const minPreix: u32 = 5;
+    // const valContent = util.i32ToU8Array(minPreix);
+    // std.debug.print("Val Content:{s}\n", .{valContent});
 
-//     _ = try instance.dbUpdate(table.TDEF_META, &r, 0);
-//     var r1 = try table.Record.init(allocator, table.TDEF_META);
-//     defer r1.deinit();
+    // try r.Set([]const u8, "key", "next_prefix");
+    // try r.Set([]const u8, "val", &valContent);
+    // std.debug.print("Record Conent: {} \n", .{r});
 
-//     try r1.Set([]const u8, "key", "next_prefix");
-//     const ret1 = try instance.dbGet(table.TDEF_META, &r1);
-//     if (ret1 == true) {
-//         const v = try r1.Get("val");
-//         const min_next = util.U8ArrayToi32(v.?.BYTES);
-//         std.debug.print("next_prefix:{d}\n", .{min_next});
-//     }
-// }
+    // _ = try instance.dbUpdate(table.TDEF_META, &r, 0);
+    // var r1 = try table.Record.init(allocator, table.TDEF_META);
+    // defer r1.deinit();
 
-// test "Test Insert Table" {
-//     std.debug.print("\nTest Insert Table\n", .{});
+    // try r1.Set([]const u8, "key", "next_prefix");
+    // const ret1 = try instance.dbGet(table.TDEF_META, &r1);
+    // if (ret1 == true) {
+    //     const v = try r1.Get("val");
+    //     const min_next = util.U8ArrayToi32(v.?.BYTES);
+    //     std.debug.print("next_prefix:{d}\n", .{min_next});
+    // }
+}
 
-//     var testTable = table.TableDef{
-//         .Prefix = 0,
-//         .Name = "person",
-//         .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
-//         .Cols = &.{ "id", "name", "address", "age", "married" },
-//         .PKeys = 0,
-//     };
+test "Test Insert Table" {
+    return error.SkipZigTest;
+    //std.debug.print("\nTest Insert Table\n", .{});
 
-//     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-//     const allocator = gpa.allocator();
-//     defer {
-//         const deinit_status = gpa.deinit();
-//         if (deinit_status == .leak) @panic("TEST FAIL");
-//     }
+    // var testTable = table.TableDef{
+    //     .Prefix = 0,
+    //     .Name = "person2key",
+    //     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
+    //     .Cols = &.{ "id", "name", "address", "age", "married" },
+    //     .PKeys = 1,
+    // };
 
-//     //const allocator = std.heap.page_allocator;
-//     const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
-//     var instance = try windb.WindowsDB.init(allocator, filename, 2000);
-//     defer instance.deinit();
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allocator = gpa.allocator();
+    // defer {
+    //     const deinit_status = gpa.deinit();
+    //     if (deinit_status == .leak) @panic("TEST FAIL");
+    // }
 
-//     try instance.AddTable(&testTable);
+    // //const allocator = std.heap.page_allocator;
+    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // var instance = try windb.WindowsDB.init(allocator, filename, 2000);
+    // defer instance.deinit();
 
-//     const def = try instance.getTableDef(testTable.Name);
-//     std.debug.print("Table Define: {}", .{def.*});
-// }
+    // try instance.AddTable(&testTable);
+
+    // const def = try instance.getTableDef(testTable.Name);
+    // std.debug.print("Table Define: {}", .{def.*});
+}

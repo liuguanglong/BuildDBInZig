@@ -47,8 +47,11 @@ pub const WindowsDB = struct {
         defer key.deinit();
         try rec.encodeKey(tdef.Prefix, &key);
 
+        //std.debug.print("Key: {s}\n", .{key.items});
+
         const val = self.kv.Get(key.items);
         if (val) |v| {
+            //std.debug.print("Reuslt: {s}\n", .{v});
             try rec.decodeValues(v);
             return true;
         } else {
