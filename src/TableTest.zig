@@ -9,8 +9,8 @@ pub const testTable = &table.TableDef{
     .Name = "person",
     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
     .Cols = &.{ "id", "name", "address", "age", "married" },
-    .PKeys = 0,
-    .Indexes = &.{ &.{ "name", "address" }, &.{"age"} },
+    .PKeys = 1,
+    .Indexes = &.{ &.{ "married", "address" }, &.{"age"} },
     .IndexPrefixes = &prefrixes,
 };
 

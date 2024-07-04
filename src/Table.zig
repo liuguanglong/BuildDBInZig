@@ -528,7 +528,17 @@ pub fn Marshal(allocator: std.mem.Allocator, def: *const TableDef, out: *std.Arr
     }
 
     allocator.free(newDef.Indexes);
-
     newDef.Indexes = try indexes.toOwnedSlice();
+
+    var prefixes = std.ArrayList(u32).init(allocator);
+    defer prefixes.deinit();
+    for (newDef.Indexes, 0..) |_, i| {
+        const pf: u32 = @intCast(newDef.Prefix + i + 1);
+        try prefixes.append(pf);
+    }
+
+    allocator.free(newDef.IndexPrefixes);
+    newDef.IndexPrefixes = try prefixes.toOwnedSlice();
+
     try std.json.stringify(newDef, .{}, out.writer());
 }

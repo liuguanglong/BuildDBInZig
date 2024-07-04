@@ -149,14 +149,14 @@ test "Test Insert min_preifx to Meta" {
     //     if (deinit_status == .leak) @panic("TEST FAIL");
     // }
 
-    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // const filename: [:0]const u8 = "c:/temp/winkvStore3.data";
     // var instance = try windb.WindowsDB.init(allocator, filename, 2000);
     // defer instance.deinit();
 
     // var r = try table.Record.init(allocator, table.TDEF_META);
     // defer r.deinit();
 
-    // const minPreix: u32 = 5;
+    // const minPreix: u32 = 3;
     // const valContent = util.i32ToU8Array(minPreix);
     // std.debug.print("Val Content:{s}\n", .{valContent});
 
@@ -181,16 +181,6 @@ test "Test Insert Table" {
     return error.SkipZigTest;
     // std.debug.print("\nTest Insert Table\n", .{});
 
-    // var testTable = table.TableDef{
-    //     .Prefix = 0,
-    //     .Name = "person3key",
-    //     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
-    //     .Cols = &.{ "id", "name", "address", "age", "married" },
-    //     .PKeys = 0,
-    //     .Indexes = &.{&.{"Name"}},
-    //     .IndexPrefixes = &.{0},
-    // };
-
     // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     // const allocator = gpa.allocator();
     // defer {
@@ -198,36 +188,24 @@ test "Test Insert Table" {
     //     if (deinit_status == .leak) @panic("TEST FAIL");
     // }
 
+    // var prefrixes = [_]u32{};
+    // var testTable1 = table.TableDef{
+    //     .Prefix = 0,
+    //     .Name = "person",
+    //     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
+    //     .Cols = &.{ "id", "name", "address", "age", "married" },
+    //     .PKeys = 0,
+    //     .Indexes = &.{&.{ "name", "age" }},
+    //     .IndexPrefixes = &prefrixes,
+    // };
+
     // //const allocator = std.heap.page_allocator;
-    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // const filename: [:0]const u8 = "c:/temp/winkvStore3.data";
     // var instance = try windb.WindowsDB.init(allocator, filename, 2000);
     // defer instance.deinit();
 
-    // try instance.AddTable(&testTable);
+    // try instance.AddTable(&testTable1);
 
-    // const def = try instance.getTableDef(testTable.Name);
+    // const def = try instance.getTableDef(testTable1.Name);
     // std.debug.print("Table Define: {}", .{def.*});
-}
-
-test "Test Table Indexes" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    defer {
-        const deinit_status = gpa.deinit();
-        if (deinit_status == .leak) @panic("TEST FAIL");
-    }
-
-    const prefrixes = [_]u32{ 0, 0 };
-    var testTable = table.TableDef{
-        .Prefix = 0,
-        .Name = "person3key",
-        .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
-        .Cols = &.{ "id", "name", "address", "age", "married" },
-        .PKeys = 0,
-        .Indexes = &.{ &.{ "name", "address" }, &.{"age"} },
-        .IndexPrefixes = &prefrixes,
-    };
-
-    try testTable.checkIndexKeys(allocator);
-    std.debug.print("Table Define: {}\n", .{testTable});
 }
