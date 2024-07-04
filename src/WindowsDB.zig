@@ -5,10 +5,14 @@ const value = @import("Value.zig");
 const table = @import("Table.zig");
 const scanner = @import("Scanner.zig");
 const biter = @import("BIter.zig");
+const req = @import("Request.zig");
 
 const MODE_UPSERT: u16 = 0; // insert or replac
 const MODE_UPDATE_ONLY: u16 = 1; // update existing keys
 const MODE_INSERT_ONLY: u16 = 2; // only add new keys
+
+const INDEX_ADD: u16 = 1; // add Second Index
+const INDEX_DEL: u16 = 2; // del Second Index
 
 pub const WindowsDB = struct {
     Path: [*:0]const u8,
@@ -131,6 +135,11 @@ pub const WindowsDB = struct {
             return table.TableError.PrimaryKeyValueMissing;
         }
 
+        bCheck = tdef.checkIndexes(rec);
+        if (bCheck == false) {
+            return table.TableError.IndexesValueMissing;
+        }
+
         var key = std.ArrayList(u8).init(self.allocator);
         defer key.deinit();
         try rec.encodeKey(tdef.Prefix, &key);
@@ -139,8 +148,30 @@ pub const WindowsDB = struct {
         defer v.deinit();
 
         try rec.encodeValues(&v);
+        var request = try req.InsertReqest.init(self.allocator, key.items, v.items, mode);
+        defer request.deinit();
 
-        return self.kv.Set(key.items, v.items, mode);
+        try self.kv.SetEx(&request);
+
+        if ((tdef.Indexes.len == 0) or (request.Updated == false)) {
+            return;
+        }
+
+        if (request.Updated == true and request.Added == false) {
+            try rec.deencodeKey(key.items);
+            try rec.decodeValues(request.OldValue.items);
+
+            self.indexOp(tdef, rec, INDEX_DEL);
+        }
+
+        if (request.Updated) {
+            self.indexOp(tdef, rec, INDEX_ADD);
+        }
+    }
+
+    pub fn indexOp(self: *WindowsDB, tdef: *const table.TableDef, rec: *table.Record, op: u16)
+    {
+        
     }
 
     // delete a record by its primary key

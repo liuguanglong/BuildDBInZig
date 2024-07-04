@@ -9,10 +9,48 @@ pub const testTable = &table.TableDef{
     .Name = "person",
     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
     .Cols = &.{ "id", "name", "address", "age", "married" },
-    .PKeys = 1,
-    .Indexes = &.{ &.{ "married", "address" }, &.{"age"} },
+    .PKeys = 0,
+    .Indexes = &.{ &.{ "address", "married", "id" }, &.{ "id", "age", "id" } },
     .IndexPrefixes = &prefrixes,
 };
+
+test "Table Encode & Decode " {
+    std.debug.print("\nTable Encode & Decode\n", .{});
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer {
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) @panic("TEST FAIL");
+    }
+
+    var r = try table.Record.init(allocator, testTable);
+    defer r.deinit();
+
+    try r.Set([]const u8, "id", "20");
+    try r.Set([]const u8, "name", "bob");
+    try r.Set([]const u8, "address", "Pointe-Claire");
+    try r.Set(i16, "age", 36);
+    try r.Set(bool, "married", true);
+
+    var val = std.ArrayList(u8).init(allocator);
+    defer val.deinit();
+
+    var key = std.ArrayList(u8).init(allocator);
+    defer key.deinit();
+
+    try r.encodeValues(&val);
+    try r.encodeKey(3, &key);
+    std.debug.print("Primary Key Result:{s}\n  Vals Result:{s} \n", .{ key.items, val.items });
+
+    for (testTable.Indexes, 0..) |_, idx| {
+        var index = std.ArrayList(u8).init(allocator);
+        defer index.deinit();
+
+        try r.encodeIndex(@intCast(idx), &index);
+
+        std.debug.print("Index :{d}\n  Vals Result:{s} \n", .{ idx, index.items });
+    }
+}
 
 test "Table Define Copy" {
     std.debug.print("\nTable Define Copy\n", .{});
