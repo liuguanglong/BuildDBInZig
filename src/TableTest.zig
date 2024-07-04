@@ -46,7 +46,7 @@ test "Table Encode & Decode " {
         var index = std.ArrayList(u8).init(allocator);
         defer index.deinit();
 
-        try r.encodeIndex(@intCast(idx), &index);
+        try r.encodeIndex(@intCast(idx + 10), @intCast(idx), &index);
 
         std.debug.print("Index :{d}\n  Vals Result:{s} \n", .{ idx, index.items });
     }

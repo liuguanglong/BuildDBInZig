@@ -169,9 +169,27 @@ pub const WindowsDB = struct {
         }
     }
 
-    pub fn indexOp(self: *WindowsDB, tdef: *const table.TableDef, rec: *table.Record, op: u16)
-    {
-        
+    pub fn indexOp(self: *WindowsDB, tdef: *const table.TableDef, rec: *table.Record, op: u16) !void {
+        for (tdef.Indexes, 0..) |_, idx| {
+            var index = std.ArrayList(u8).init(self.allocator);
+            defer index.deinit();
+
+            try rec.encodeIndex(tdef.IndexPrefixes[idx], @intCast(idx), &index);
+            std.debug.print("Index :{d}\n  Vals Result:{s} \n", .{ idx, index.items });
+
+            if (op == INDEX_ADD) {
+                var request = try req.InsertReqest.init(self.allocator, index.items, "", MODE_UPSERT);
+                defer request.deinit();
+
+                try self.kv.SetEx(&request);
+            } else if (op == INDEX_DEL) {
+                var reqDelete = try req.DeleteRequest.init(self.allocator, index.items);
+                defer reqDelete.deinit();
+                _ = try self.kv.DeleteEx(&reqDelete);
+            } else {
+                std.debug.panic("bad op value!");
+            }
+        }
     }
 
     // delete a record by its primary key

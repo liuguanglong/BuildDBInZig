@@ -127,7 +127,9 @@ pub const Record = struct {
     }
 
     // order-preserving encoding
-    pub fn encodeIndex(self: *Record, index: u16, list: *std.ArrayList(u8)) !void {
+    pub fn encodeIndex(self: *Record, prefix: u32, index: u16, list: *std.ArrayList(u8)) !void {
+        const pValue: i32 = @intCast(prefix);
+        try list.appendSlice(&util.i32ToU8Array(pValue));
         for (self.def.Indexes[index]) |col| {
             const i = try self.def.colIndex(col);
             try self.encodeVal(@intCast(i), list);
