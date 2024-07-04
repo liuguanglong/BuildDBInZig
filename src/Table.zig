@@ -285,6 +285,8 @@ pub const TableDef = struct {
     Cols: []const []const u8,
     PKeys: u16,
     Prefix: u32,
+    Indexes: []const []const []const u8,
+    IndexPrefixes: []const u32,
 
     pub fn format(
         self: TableDef,
@@ -304,12 +306,37 @@ pub const TableDef = struct {
             try writer.print("{}|", .{self.Types[iCols]});
             iCols += 1;
         }
+
+        try writer.print("\nPrimary Keys\n", .{});
+        iCols = 0;
+        while (iCols <= self.PKeys) {
+            try writer.print("{s}|", .{self.Cols[iCols]});
+            iCols += 1;
+        }
+
+        try writer.print("\nIndexes\n", .{});
+        for (self.Indexes) |index| {
+            for (index) |col| {
+                try writer.print("{s}|", .{col});
+            }
+            try writer.print("\n", .{});
+        }
     }
 
     pub fn deinit(self: *TableDef, allocator: std.mem.Allocator) void {
         for (self.Cols) |col| {
             allocator.free(col);
         }
+
+        for (self.Indexes) |index| {
+            for (index) |item| {
+                allocator.free(item);
+            }
+            allocator.free(index);
+        }
+
+        allocator.free(self.Indexes);
+        allocator.free(self.IndexPrefixes);
         allocator.free(self.Name);
         allocator.free(self.Cols);
         allocator.free(self.Types);
@@ -317,45 +344,40 @@ pub const TableDef = struct {
         allocator.destroy(self);
     }
 
-    pub fn copy(allocator: std.mem.Allocator, def: TableDef) !*TableDef {
-        var name = std.ArrayList(u8).init(allocator);
-        defer name.deinit();
-        try name.appendSlice(def.Name);
-
-        var cols = std.ArrayList([]const u8).init(allocator);
-        defer cols.deinit();
-        for (def.Cols) |col| {
-            var c = std.ArrayList(u8).init(allocator);
-            try c.appendSlice(col);
-            const c1 = try c.toOwnedSlice();
-            try cols.append(c1);
-        }
-
-        var types = std.ArrayList(value.ValueType).init(allocator);
-        defer types.deinit();
-        for (def.Types) |t| {
-            try types.append(t);
-        }
-
-        var newObj = try allocator.create(TableDef);
-        newObj.Name = try name.toOwnedSlice();
-        newObj.Cols = try cols.toOwnedSlice();
-        newObj.Types = try types.toOwnedSlice();
-        newObj.Prefix = def.Prefix;
-        newObj.PKeys = def.PKeys;
-
-        return newObj;
-    }
-
     // check primaykey
     pub fn checkPrimaryKey(self: *const TableDef, rec: *Record) bool {
         var idx: u16 = 0;
         while (idx <= self.PKeys) {
             if (rec.Vals.items[idx] == null) {
-                std.debug.print("Check Primary Key Error. Idx:{d}", .{idx});
+                std.debug.print("Check Primary Key Error. Col:{d} is null\n", .{idx});
                 return false;
             }
             idx += 1;
+        }
+        return true;
+    }
+
+    pub fn colIndex(self: *const TableDef, col: []const u8) !usize {
+        for (self.Cols, 0..) |colDef, i| {
+            if (util.compareArrays(colDef, col) == 0) {
+                return i;
+            }
+        }
+        return TableError.ColumnNotFind;
+    }
+
+    // check Indexes
+    pub fn checkIndexes(self: *const TableDef, rec: *Record) bool {
+        for (self.Indexes) |Index| {
+            for (Index) |col| {
+                const idx = self.colIndex(col) catch {
+                    std.debug.panic("Col not find in Table Definition!{s}", .{col});
+                };
+                if (rec.Vals.items[idx] == null) {
+                    std.debug.print("Check Indexes Error. Col:{s} is null!\n", .{col});
+                    return false;
+                }
+            }
         }
         return true;
     }
@@ -372,6 +394,30 @@ pub const TableDef = struct {
         }
         return true;
     }
+
+    // check indexes and and primary key to indexes
+    pub fn fixIndexKeys(self: *TableDef, allocator: std.mem.Allocator) !void {
+        var indexes = std.ArrayList([]const []const u8).init(allocator);
+        defer indexes.deinit();
+
+        //Add Primary Key To Indexes
+        for (self.Indexes) |index| {
+            var items = std.ArrayList([]const u8).init(allocator);
+            defer items.deinit();
+
+            var idx: u16 = 0;
+            while (idx <= self.PKeys) {
+                try items.append(self.Cols[idx]);
+                idx += 1;
+            }
+            try items.appendSlice(index);
+
+            const c2 = try items.toOwnedSlice();
+            try indexes.append(c2);
+        }
+
+        self.Indexes = try indexes.toOwnedSlice();
+    }
 };
 
 pub const TDEF_META = &TableDef{
@@ -380,6 +426,8 @@ pub const TDEF_META = &TableDef{
     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES },
     .Cols = &.{ "key", "val" },
     .PKeys = 0,
+    .Indexes = &.{},
+    .IndexPrefixes = &.{},
 };
 
 pub const TDEF_TABLE = &TableDef{
@@ -388,8 +436,99 @@ pub const TDEF_TABLE = &TableDef{
     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES },
     .Cols = &.{ "name", "def" },
     .PKeys = 0,
+    .Indexes = &.{},
+    .IndexPrefixes = &.{},
 };
 
-pub fn Marshal(def: *const *const TableDef, out: *std.ArrayList(u8)) !void {
-    try std.json.stringify(def, .{}, out.writer());
+pub fn copy(allocator: std.mem.Allocator, def: *const TableDef) !*TableDef {
+    var name = std.ArrayList(u8).init(allocator);
+    defer name.deinit();
+    try name.appendSlice(def.Name);
+
+    var cols = std.ArrayList([]const u8).init(allocator);
+    defer cols.deinit();
+    for (def.Cols) |col| {
+        var c = std.ArrayList(u8).init(allocator);
+        try c.appendSlice(col);
+        const c1 = try c.toOwnedSlice();
+        try cols.append(c1);
+    }
+
+    var types = std.ArrayList(value.ValueType).init(allocator);
+    defer types.deinit();
+    for (def.Types) |t| {
+        try types.append(t);
+    }
+
+    var newObj = try allocator.create(TableDef);
+    newObj.Name = try name.toOwnedSlice();
+    newObj.Cols = try cols.toOwnedSlice();
+    newObj.Types = try types.toOwnedSlice();
+    newObj.Prefix = def.Prefix;
+    newObj.PKeys = def.PKeys;
+
+    //Copy Indexes
+    var indexs = std.ArrayList([][]const u8).init(allocator);
+    //defer indexs.deinit();
+    for (def.Indexes) |index| {
+        var items = std.ArrayList([]const u8).init(allocator);
+        for (index) |col| {
+            var c = std.ArrayList(u8).init(allocator);
+            try c.appendSlice(col);
+            const c1 = try c.toOwnedSlice();
+            try items.append(c1);
+        }
+        const c2 = try items.toOwnedSlice();
+        try indexs.append(c2);
+    }
+    newObj.Indexes = try indexs.toOwnedSlice();
+
+    var prefixes = std.ArrayList(u32).init(allocator);
+    try prefixes.appendSlice(def.IndexPrefixes);
+    newObj.IndexPrefixes = try prefixes.toOwnedSlice();
+
+    return newObj;
+}
+
+pub fn Marshal(allocator: std.mem.Allocator, def: *const TableDef, out: *std.ArrayList(u8)) !void {
+    var indexes = std.ArrayList([]const []const u8).init(allocator);
+    defer indexes.deinit();
+
+    var newDef = try copy(allocator, def);
+    defer newDef.deinit(allocator);
+
+    //Add Primary Key To Indexes
+    for (newDef.Indexes) |index| {
+        var items = std.ArrayList([]const u8).init(allocator);
+        var idx: u16 = 0;
+        while (idx <= newDef.PKeys) {
+            var c = std.ArrayList(u8).init(allocator);
+            try c.appendSlice(newDef.Cols[idx]);
+            const c1 = try c.toOwnedSlice();
+            try items.append(c1);
+            idx += 1;
+        }
+
+        for (index) |col| {
+            var c = std.ArrayList(u8).init(allocator);
+            try c.appendSlice(col);
+            const c1 = try c.toOwnedSlice();
+            try items.append(c1);
+        }
+        //try items.appendSlice(index);
+        const c2 = try items.toOwnedSlice();
+        try indexes.append(c2);
+    }
+
+    for (newDef.Indexes) |index| {
+        for (index) |item| {
+            allocator.free(item);
+        }
+        allocator.free(index);
+    }
+
+    allocator.free(newDef.Indexes);
+
+    newDef.Indexes = try indexes.toOwnedSlice();
+    try std.json.stringify(newDef, .{}, out.writer());
 }

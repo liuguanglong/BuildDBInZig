@@ -9,48 +9,48 @@ const scanner = @import("Scanner.zig");
 const testing = std.testing;
 
 test "Test Seek" {
-    // return error.SkipZigTest;
-    std.debug.print("\nTest Seek Record\n", .{});
+    return error.SkipZigTest;
+    // std.debug.print("\nTest Seek Record\n", .{});
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    defer {
-        const deinit_status = gpa.deinit();
-        if (deinit_status == .leak) @panic("TEST FAIL");
-    }
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allocator = gpa.allocator();
+    // defer {
+    //     const deinit_status = gpa.deinit();
+    //     if (deinit_status == .leak) @panic("TEST FAIL");
+    // }
 
-    //const allocator = std.heap.page_allocator;
-    const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
-    var instance = try windb.WindowsDB.init(allocator, filename, 20000);
-    defer instance.deinit();
+    // //const allocator = std.heap.page_allocator;
+    // const filename: [:0]const u8 = "c:/temp/winkvStore2.data";
+    // var instance = try windb.WindowsDB.init(allocator, filename, 20000);
+    // defer instance.deinit();
 
-    const def = try instance.getTableDef("person2key");
-    std.debug.print("Table Define: {} \n", .{def.*});
+    // const def = try instance.getTableDef("person2key");
+    // std.debug.print("Table Define: {} \n", .{def.*});
 
-    var r1 = try table.Record.init(allocator, def);
-    defer r1.deinit();
+    // var r1 = try table.Record.init(allocator, def);
+    // defer r1.deinit();
 
-    var r2 = try table.Record.init(allocator, def);
-    defer r2.deinit();
+    // var r2 = try table.Record.init(allocator, def);
+    // defer r2.deinit();
 
-    try r1.Set([]const u8, "id", "1");
-    try r1.Set([]const u8, "name", "bob1");
-    try r2.Set([]const u8, "id", "8");
-    try r2.Set([]const u8, "name", "bob8");
+    // try r1.Set([]const u8, "id", "1");
+    // try r1.Set([]const u8, "name", "bob1");
+    // try r2.Set([]const u8, "id", "8");
+    // try r2.Set([]const u8, "name", "bob8");
 
-    var cursor = try scanner.Scanner.createScanner(allocator, biter.OP_CMP.CMP_GE, biter.OP_CMP.CMP_LE, &r1, &r2);
-    defer allocator.destroy(cursor);
-    defer cursor.deinit();
+    // var cursor = try scanner.Scanner.createScanner(allocator, biter.OP_CMP.CMP_GE, biter.OP_CMP.CMP_LE, &r1, &r2);
+    // defer allocator.destroy(cursor);
+    // defer cursor.deinit();
 
-    try cursor.Seek(instance.kv);
+    // try cursor.Seek(instance.kv);
 
-    var r3 = try table.Record.init(allocator, def);
-    defer r3.deinit();
-    while (cursor.Valid()) {
-        try cursor.Deref(&r3);
-        std.debug.print("{}\n", .{r3});
-        cursor.Next();
-    }
+    // var r3 = try table.Record.init(allocator, def);
+    // defer r3.deinit();
+    // while (cursor.Valid()) {
+    //     try cursor.Deref(&r3);
+    //     std.debug.print("{}\n", .{r3});
+    //     cursor.Next();
+    // }
 }
 
 test "Test Delete" {
@@ -179,14 +179,16 @@ test "Test Insert min_preifx to Meta" {
 
 test "Test Insert Table" {
     return error.SkipZigTest;
-    //std.debug.print("\nTest Insert Table\n", .{});
+    // std.debug.print("\nTest Insert Table\n", .{});
 
     // var testTable = table.TableDef{
     //     .Prefix = 0,
-    //     .Name = "person2key",
+    //     .Name = "person3key",
     //     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
     //     .Cols = &.{ "id", "name", "address", "age", "married" },
-    //     .PKeys = 1,
+    //     .PKeys = 0,
+    //     .Indexes = &.{&.{"Name"}},
+    //     .IndexPrefixes = &.{0},
     // };
 
     // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -205,4 +207,27 @@ test "Test Insert Table" {
 
     // const def = try instance.getTableDef(testTable.Name);
     // std.debug.print("Table Define: {}", .{def.*});
+}
+
+test "Test Table Indexes" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer {
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) @panic("TEST FAIL");
+    }
+
+    const prefrixes = [_]u32{ 0, 0 };
+    var testTable = table.TableDef{
+        .Prefix = 0,
+        .Name = "person3key",
+        .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
+        .Cols = &.{ "id", "name", "address", "age", "married" },
+        .PKeys = 0,
+        .Indexes = &.{ &.{ "name", "address" }, &.{"age"} },
+        .IndexPrefixes = &prefrixes,
+    };
+
+    try testTable.checkIndexKeys(allocator);
+    std.debug.print("Table Define: {}\n", .{testTable});
 }

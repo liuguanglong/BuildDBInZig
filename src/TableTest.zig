@@ -3,12 +3,15 @@ const util = @import("Util.zig");
 const value = @import("Value.zig");
 const table = @import("Table.zig");
 
+pub const prefrixes = [_]u32{};
 pub const testTable = &table.TableDef{
     .Prefix = 3,
     .Name = "person",
     .Types = &.{ value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.BYTES, value.ValueType.INT16, value.ValueType.BOOL },
     .Cols = &.{ "id", "name", "address", "age", "married" },
-    .PKeys = 1,
+    .PKeys = 0,
+    .Indexes = &.{ &.{ "name", "address" }, &.{"age"} },
+    .IndexPrefixes = &prefrixes,
 };
 
 test "Table Define Copy" {
@@ -38,9 +41,9 @@ test "Table Define Marshal" {
 
     var strTableDef = std.ArrayList(u8).init(allocator);
     defer strTableDef.deinit();
-    try table.Marshal(&testTable, &strTableDef);
+    try table.Marshal(allocator, testTable, &strTableDef);
 
-    std.debug.print("Marshal Result:\n {s}", .{strTableDef.items});
+    std.debug.print("Marshal Result:\n {s}\n", .{strTableDef.items});
 
     const parsed = try std.json.parseFromSlice(
         table.TableDef,
@@ -65,11 +68,14 @@ test "Table Check PKey" {
     defer r.deinit();
 
     try r.Set([]const u8, "id", "20");
-    std.debug.print("Before: {} \n", .{r});
+    try r.Set([]const u8, "name", "bob");
+    try r.Set([]const u8, "address", "Pointe-Claire");
+    try r.Set(i16, "age", 36);
 
     const bCheck = testTable.checkPrimaryKey(&r);
+    const bCheckIndexes = testTable.checkIndexes(&r);
 
-    std.debug.print("Result: {}", .{bCheck});
+    std.debug.print("Primary Key Result: {}\n  Indexes Result:{} \n", .{ bCheck, bCheckIndexes });
 }
 
 test "Table Check ReOrder" {

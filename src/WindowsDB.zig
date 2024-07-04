@@ -76,7 +76,7 @@ pub const WindowsDB = struct {
             );
             defer parsed.deinit();
 
-            const def = try table.TableDef.copy(self.allocator, parsed.value);
+            const def = try table.copy(self.allocator, parsed.value);
             return def;
         } else {
             return table.TableError.DefinitionMissing;
@@ -194,7 +194,7 @@ pub const WindowsDB = struct {
         // store the definition
         var strTableDef = std.ArrayList(u8).init(self.allocator);
         defer strTableDef.deinit();
-        try table.Marshal(&tdef, &strTableDef);
+        try table.Marshal(tdef, &strTableDef);
 
         try rtable.Set([]const u8, "def", strTableDef.items);
         try self.dbUpdate(table.TDEF_TABLE, &rtable, 0);
