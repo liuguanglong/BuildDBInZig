@@ -683,7 +683,7 @@ pub const BTree = struct {
                     // insert it after the position.
                     newNode.leafInsert(oldNode, idx + 1, request.Key, request.Val);
                     request.Added = true;
-                    request.Updated = false;
+                    request.Updated = true;
                 }
             },
             node.BNODE_NODE => {

@@ -206,9 +206,38 @@ pub const WindowsDB = struct {
         return self.kv.Delete(key.items);
     }
 
+    // delete a record by its primary key
+    pub fn DeleteEx(self: *WindowsDB, rec: *table.Record) !bool {
+        const bCheck = rec.def.checkPrimaryKey(rec);
+        if (bCheck == false) {
+            return table.TableError.PrimaryKeyValueMissing;
+        }
+
+        var key = std.ArrayList(u8).init(self.allocator);
+        defer key.deinit();
+        try rec.encodeKey(rec.def.Prefix, &key);
+
+        var reqDelete = try req.DeleteRequest.init(self.allocator, key.items);
+        defer reqDelete.deinit();
+        const ret = try self.DeleteEx(&reqDelete);
+
+        if (ret == true) {
+            try rec.deencodeKey(key.items);
+            try rec.decodeValues(reqDelete.OldValue.items);
+
+            self.indexOp(rec.tdef, rec, INDEX_DEL);
+        } else {
+            return false;
+        }
+    }
+
     //add a record
     pub fn Set(self: *WindowsDB, rec: *table.Record, mode: u16) !void {
         try self.dbUpdate(rec.def, rec, mode);
+    }
+
+    pub fn SetEx(self: *WindowsDB, rec: *table.Record, mode: u16) !void {
+        try self.dbUpdateEx(rec.def, rec, mode);
     }
 
     pub fn Insert(self: *WindowsDB, rec: *table.Record) !void {
